@@ -17,6 +17,9 @@ uint16_t sensorMaxVal[LS_NUM_SENSORS];
 uint16_t sensorMinVal[LS_NUM_SENSORS];
 int intersection_counter = 0;
 
+uint16_t normalSpeed = 20;
+uint16_t fastSpeed = 25;
+
 enum states {
   CENTERED,
   LEFT_OF_LINE,
@@ -75,6 +78,37 @@ void ninety_left(){// needs to be tuned for a 90 degree turn through either time
 }
 void stopper(){
   disableMotor(BOTH_MOTORS);
+}
+
+// This works by taking the two outer most line sensors and checks if the value is over 2000 w/ a max of 2500. 
+// This informs us that even though variable LinePos says that it is centered or to the left, we are able to index the exact sensor value and see that they are all saturated
+// It returns a TRUE FALSE for if the robot reads an intersection
+bool CheckIntersection() { 
+  if (sensorVal[0] > 2000 || sensorVal[7] > 2000) {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+// This function ensures that the robots line sensors are aligned in parrellel with the intersection
+void AlignAtIntersection(){ // indicates the left edge of robot hit the intersection first
+    stopper();
+    if (sensorVal[0]>2000){
+      enableMotor(RIGHT_MOTOR); // turns on right motor to bring the right side of the robot even with the left side
+      setMotorDirection(RIGHT_MOTOR,MOTOR_DIR_FORWARD);
+      setMotorSpeed(RIGHT_MOTOR,normalSpeed); // update speed in future to be non hardcoded
+      if (sensorVal[7]>2000){
+        stopper();
+      }
+    } else if(sensorVal[7]>2000){
+      enableMotor(LEFT_MOTOR); // turns on right motor to bring the right side of the robot even with the left side
+      setMotorDirection(LEFT_MOTOR,MOTOR_DIR_FORWARD);
+      setMotorSpeed(LEFT_MOTOR,normalSpeed); // update speed in future to be non hardcoded
+      if (sensorVal[0]>2000){
+        stopper();
+      }
+    }
 }
 
 void setup() {
