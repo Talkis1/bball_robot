@@ -1,5 +1,27 @@
 #include "SimpleRSLK.h"
 
+// IR Beacon Initialization Values
+#define green GREEN_LED
+#define red RED_LED
+int IRbeaconLeft = 2;
+int IRbeaconMid = 3;
+int IRbeaconRight = 4;
+int prev1Left = 1;
+int prev2Left = 1;
+int prev3Left = 1;
+int prev4Left = 1;
+
+int prev1Mid = 1;
+int prev2Mid = 1;
+int prev3Mid = 1;
+int prev4Mid = 1;
+
+int prev1Right = 1;
+int prev2Right = 1;
+int prev3Right = 1;
+int prev4Right = 1;
+
+
 uint16_t rightSpeed = 5;
 uint16_t leftSpeed = 5;
 uint16_t normalEncSpeed = 4;
