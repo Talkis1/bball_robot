@@ -56,7 +56,7 @@ void ninety_right() {  // needs to be tuned for a 90 degree turn through either 
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 133)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
     turnRight = false;
   }
 }
@@ -82,6 +82,51 @@ void ninety_left() {  // needs to be tuned for a 90 degree turn through either t
   }
   Serial.println(getEncoderLeftCnt() - leftEncTurn);
   Serial.println(getEncoderRightCnt() - rightEncTurn);
+}
+
+void face_left_basket() {
+  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 90) {
+    enableMotor(LEFT_MOTOR);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  } else {
+    disableMotor(LEFT_MOTOR);
+  }
+  if ((getEncoderRightCnt() - rightEncTurn) < 90) {
+    enableMotor(RIGHT_MOTOR);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  } else {
+    disableMotor(RIGHT_MOTOR);
+  }
+  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
+    turnLeft = false;
+  }
+  Serial.println(getEncoderLeftCnt() - leftEncTurn);
+  Serial.println(getEncoderRightCnt() - rightEncTurn);
+}
+
+void face_right_basket() {
+  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 90) {
+    enableMotor(LEFT_MOTOR);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  } else {
+    disableMotor(LEFT_MOTOR);
+  }
+
+  if ((getEncoderRightCnt() - rightEncTurn) < 90) {
+    enableMotor(RIGHT_MOTOR);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  } else {
+    disableMotor(RIGHT_MOTOR);
+  }
+  if (((getEncoderRightCnt() - rightEncTurn) > 90) && ((getEncoderLeftCnt() - leftEncTurn) > 133)) {
+    turnRight = false;
+  }
 }
 
 void stopper() {
@@ -141,14 +186,12 @@ void setup() {
   /* Red led in rgb led */
   setupLed(RED_LED);
   clearMinMax(sensorMinVal, sensorMaxVal);
+  pinMode(IRbeacon1, INPUT_PULLUP);  // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  if (!calibrated) {
-    floorCalibration();
-    calibrated = true;
-  }
+int counter = 0;
 
-  driving();
+void loop() {
+ 
+   
 }

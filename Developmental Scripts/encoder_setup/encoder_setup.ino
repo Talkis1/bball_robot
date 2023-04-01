@@ -103,7 +103,7 @@ void ninety_right() {  // needs to be tuned for a 90 degree turn through either 
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 133)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
     turnRight = false;
   }
 }
