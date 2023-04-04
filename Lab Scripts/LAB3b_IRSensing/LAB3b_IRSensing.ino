@@ -1,7 +1,7 @@
 #define green GREEN_LED
 #define red RED_LED
 
-int IRbeacon1 = 10;
+int IRbeacon1 = 2;
 int prev1 = 1;
 int prev2 = 1;
 int prev3 = 1;
@@ -16,14 +16,6 @@ void setup() {
   pinMode(IRbeacon1, INPUT_PULLUP); // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
 }
 
-// the loop routine runs over and over again forever:
-/*NOTE: This is not good code. It's blocking code due to the delay. Turn this into 
-        non-blocking code by either defining a timer as in BlinkWithoutDelay or 
-        attaching an interrupt. If you want an interrupt, you can use any unused
-        (white) P4.x pins. That information is found in both the base pin map and User Guide.
-        Software guidance for using an interrupt can be found here: 
-        https://energia.nu/reference/en/language/functions/external-interrupts/attachinterrupt/
-        */
 void loop() {
   // read the input pin:
   int IRState = digitalRead(IRbeacon1);

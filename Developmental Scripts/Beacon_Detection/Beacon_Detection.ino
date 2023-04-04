@@ -4,8 +4,12 @@
 #define green GREEN_LED
 #define red RED_LED
 int IRbeaconLeft = 2;
+int IRStateLeft = 1;
 int IRbeaconMid = 3;
+int IRStateMid = 1;
 int IRbeaconRight = 4;
+int IRStateRight = 1;
+
 int prev1Left = 1;
 int prev2Left = 1;
 int prev3Left = 1;
@@ -208,12 +212,51 @@ void setup() {
   /* Red led in rgb led */
   setupLed(RED_LED);
   clearMinMax(sensorMinVal, sensorMaxVal);
-  pinMode(IRbeacon1, INPUT_PULLUP);  // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
+  pinMode(IRbeaconLeft, INPUT_PULLUP);  // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
+  pinMode(IRbeaconMid, INPUT_PULLUP);
+  pinMode(IRbeaconRight, INPUT_PULLUP);
 }
 
 int counter = 0;
 
 void loop() {
- 
-   
+  IRStateLeft = digitalRead(IRbeaconLeft);
+  IRStateMid = digitalRead(IRbeaconMid);
+  IRStateRight = digitalRead(IRbeaconRight);
+
+  int IRCompLeft = (IRStateLeft + prev1Left + prev2Left + prev3Left + prev4Left) / 5;
+  int IRCompMid = (IRStateMid + prev1Mid + prev2Mid + prev3Mid + prev4Mid) / 5;
+  int IRCompRight = (IRStateRight + prev1Right + prev2Right + prev3Right + prev4Right) / 5;
+  delay(1);
+
+  Serial.println(IRStateLeft);
+  Serial.println(IRCompLeft);
+
+  if (IRCompLeft < 1) {
+    digitalWrite(green, HIGH);
+    digitalWrite(red, LOW);
+  }
+  else {
+    digitalWrite(green, LOW);
+    digitalWrite(red, HIGH);
+  }
+  prev1Left = IRStateLeft;
+  prev2Left = prev1Left;
+  prev3Left = prev2Left;
+  prev4Left = prev3Left;
+
+  prev1Mid = IRStateMid;
+  prev2Mid = prev1Mid;
+  prev3Mid = prev2Mid;
+  prev4Mid = prev3Mid;
+
+  prev1Right = IRStateRight;
+  prev2Right = prev1Right;
+  prev3Right = prev2Right;
+  prev4Right = prev3Right;
+  
+
+
+
+
 }
