@@ -3,6 +3,7 @@
 // IR Beacon Initialization Values
 #define green GREEN_LED
 #define red RED_LED
+
 int IRbeaconLeft = 15;
 int IRStateLeft = 1;
 int IRbeaconMid = 16;
@@ -228,18 +229,28 @@ void loop() {
   int IRCompMid = (IRStateMid + prev1Mid + prev2Mid + prev3Mid + prev4Mid) / 5;
   int IRCompRight = (IRStateRight + prev1Right + prev2Right + prev3Right + prev4Right) / 5;
   delay(1);
-
+  
   Serial.println(IRStateLeft);
   Serial.println(IRCompLeft);
+
+
 
   if (IRCompLeft < 1) {
     digitalWrite(green, HIGH);
     digitalWrite(red, LOW);
+    currDecState = SHOOTING_LEFT;
   }
-  else {
+  else if (IRCompMid<1) {
     digitalWrite(green, LOW);
     digitalWrite(red, HIGH);
+    currDecState = SHOOTING_MID;
   }
+  else if (IRCompRight<1){
+    currDecState = SHOOTING_RIGHT;
+    digitalWrite(green, HIGH);
+    digitalWrite(red, HIGH);
+  }
+
   prev1Left = IRStateLeft;
   prev2Left = prev1Left;
   prev3Left = prev2Left;
