@@ -1,7 +1,7 @@
 #define green GREEN_LED
 #define red RED_LED
 
-int IRbeacon1 = 2;
+int IRbeacon1 = 15;
 int prev1 = 1;
 int prev2 = 1;
 int prev3 = 1;

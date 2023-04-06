@@ -3,11 +3,11 @@
 // IR Beacon Initialization Values
 #define green GREEN_LED
 #define red RED_LED
-int IRbeaconLeft = 2;
+int IRbeaconLeft = 15;
 int IRStateLeft = 1;
-int IRbeaconMid = 3;
+int IRbeaconMid = 16;
 int IRStateMid = 1;
-int IRbeaconRight = 4;
+int IRbeaconRight = 17;
 int IRStateRight = 1;
 
 int prev1Left = 1;
