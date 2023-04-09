@@ -3,7 +3,6 @@
 // IR Beacon Initialization Values
 #define green GREEN_LED
 #define red RED_LED
-
 int IRbeaconLeft = 15;
 int IRStateLeft = 1;
 int IRbeaconMid = 16;
@@ -11,20 +10,11 @@ int IRStateMid = 1;
 int IRbeaconRight = 17;
 int IRStateRight = 1;
 
-int prev1Left = 1;
-int prev2Left = 1;
-int prev3Left = 1;
-int prev4Left = 1;
-
-int prev1Mid = 1;
-int prev2Mid = 1;
-int prev3Mid = 1;
-int prev4Mid = 1;
-
-int prev1Right = 1;
-int prev2Right = 1;
-int prev3Right = 1;
-int prev4Right = 1;
+int detectStartTime = 0;
+int detectEndTime = 0;
+int leftBeaconCounter = 0;
+int midBeaconCounter = 0;
+int rightBeaconCounter = 0;
 
 
 uint16_t rightSpeed = 5;
@@ -66,6 +56,7 @@ enum decisionStates {
 };
 
 decisionStates currDecState = DETECTING;
+decisionStates prevDecState = DETECTING;
 
 void ninety_right() {  // needs to be tuned for a 90 degree turn through either time or encoder
   getMotorSpeed(normalEncSpeed, normalEncSpeed);
@@ -203,30 +194,42 @@ void getMotorSpeed(uint16_t leftEncSpeed, uint16_t rightEncSpeed) {
 }
 
 void detecting() {
-  IRStateLeft = digitalRead(IRbeaconLeft);
-  IRStateMid = digitalRead(IRbeaconMid);
-  IRStateRight = digitalRead(IRbeaconRight);
+  if (prevDecState != currDecState) {
+    detectStartTime = millis();
+    detectEndTime = detectStartTime + 1000;
+    leftBeaconCounter = 0;
+    midBeaconCounter = 0;
+    rightBeaconCounter = 0;
+  }
+  if (millis() < detectEndTime) {
+    IRStateLeft = digitalRead(IRbeaconLeft);
+    IRStateMid = digitalRead(IRbeaconMid);
+    IRStateRight = digitalRead(IRbeaconRight);
 
-  int IRCompLeft = (IRStateLeft + prev1Left + prev2Left + prev3Left + prev4Left) / 5;
-  int IRCompMid = (IRStateMid + prev1Mid + prev2Mid + prev3Mid + prev4Mid) / 5;
-  int IRCompRight = (IRStateRight + prev1Right + prev2Right + prev3Right + prev4Right) / 5;
-  
+    if (IRStateLeft == 0) {
+      leftBeaconCounter++;
+    }
+    if (IRStateMid == 0) {
+      midBeaconCounter++;
+    }
+    if (IRStateRight == 0) {
+      rightBeaconCounter++;
+    }
 
-  prev1Left = IRStateLeft;
-  prev2Left = prev1Left;
-  prev3Left = prev2Left;
-  prev4Left = prev3Left;
+    delay(1);
 
-  prev1Mid = IRStateMid;
-  prev2Mid = prev1Mid;
-  prev3Mid = prev2Mid;
-  prev4Mid = prev3Mid;
 
-  prev1Right = IRStateRight;
-  prev2Right = prev1Right;
-  prev3Right = prev2Right;
-  prev4Right = prev3Right;
-  
+  } else {
+    //set new currDecState Variable here
+    if (leftBeaconCounter > midBeaconCounter && leftBeaconCounter > rightBeaconCounter) {
+      currDecState = SHOOTING_LEFT;
+    } else if (midBeaconCounter > leftBeaconCounter && midBeaconCounter > rightBeaconCounter) {
+      currDecState = SHOOTING_MID;
+    } else if (rightBeaconCounter > leftBeaconCounter && rightBeaconCounter > midBeaconCounter) {
+      currDecState = SHOOTING_RIGHT;
+    }
+  }
+
 }
 
 void setup() {
@@ -249,37 +252,13 @@ void setup() {
 int counter = 0;
 
 void loop() {
- 
-
-  
-  delay(1);
-  
-  Serial.println(IRStateLeft);
-  Serial.println(IRCompLeft);
 
 
 
-  if (IRCompLeft < 1) {
-    digitalWrite(green, HIGH);
-    digitalWrite(red, LOW);
-    currDecState = SHOOTING_LEFT;
-  }
-  else if (IRCompRight<1) {
-    digitalWrite(green, LOW);
-    digitalWrite(red, HIGH);
-    currDecState = SHOOTING_MID;
-  }
-//  else if (IRCompRight<1){
-//    currDecState = SHOOTING_RIGHT;
-//    digitalWrite(green, HIGH);
-//    digitalWrite(red, HIGH);
-//  }
-   yuelse {
-    digitalWrite(green, LOW);
-    digitalWrite(red, LOW);
-  }
 
-  
+
+
+
 
 
 

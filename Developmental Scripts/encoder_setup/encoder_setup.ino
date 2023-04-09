@@ -51,20 +51,11 @@ int IRStateMid = 1;
 int IRbeaconRight = 17;
 int IRStateRight = 1;
 
-int prev1Left = 1;
-int prev2Left = 1;
-int prev3Left = 1;
-int prev4Left = 1;
-
-int prev1Mid = 1;
-int prev2Mid = 1;
-int prev3Mid = 1;
-int prev4Mid = 1;
-
-int prev1Right = 1;
-int prev2Right = 1;
-int prev3Right = 1;
-int prev4Right = 1;
+int detectStartTime = 0;
+int detectEndTime = 0;
+int leftBeaconCounter = 0;
+int midBeaconCounter = 0;
+int rightBeaconCounter = 0;
 
 uint16_t sensorVal[LS_NUM_SENSORS];
 uint16_t sensorCalVal[LS_NUM_SENSORS];
@@ -703,7 +694,42 @@ void initialMap() {
 }
 
 void detecting() {
-  
+  if (prevDecState != currDecState) {
+    detectStartTime = millis();
+    detectEndTime = detectStartTime + 1000;
+    leftBeaconCounter = 0;
+    midBeaconCounter = 0;
+    rightBeaconCounter = 0;
+  }
+  if (millis() < detectEndTime) {
+    IRStateLeft = digitalRead(IRbeaconLeft);
+    IRStateMid = digitalRead(IRbeaconMid);
+    IRStateRight = digitalRead(IRbeaconRight);
+
+    if (IRStateLeft == 0) {
+      leftBeaconCounter++;
+    }
+    if (IRStateMid == 0) {
+      midBeaconCounter++;
+    }
+    if (IRStateRight == 0) {
+      rightBeaconCounter++;
+    }
+
+    delay(1);
+
+
+  } else {
+    //set new currDecState Variable here
+    if (leftBeaconCounter > midBeaconCounter && leftBeaconCounter > rightBeaconCounter) {
+      currDecState = SHOOTING_LEFT;
+    } else if (midBeaconCounter > leftBeaconCounter && midBeaconCounter > rightBeaconCounter) {
+      currDecState = SHOOTING_MID;
+    } else if (rightBeaconCounter > leftBeaconCounter && rightBeaconCounter > midBeaconCounter) {
+      currDecState = SHOOTING_RIGHT;
+    }
+  }
+
 }
 
 void setup() {
