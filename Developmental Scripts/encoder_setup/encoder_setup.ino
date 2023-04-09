@@ -3,6 +3,8 @@
 
 #define PINTRIG 36
 #define PINECHO 37
+#define green GREEN_LED
+#define red RED_LED
 
 hcrs04 mySensor(PINTRIG, PINECHO);
 
@@ -42,6 +44,28 @@ int minDistIdx;
 int centerIdx;
 int basketEncDist = 600;
 
+int IRbeaconLeft = 15;
+int IRStateLeft = 1;
+int IRbeaconMid = 16;
+int IRStateMid = 1;
+int IRbeaconRight = 17;
+int IRStateRight = 1;
+
+int prev1Left = 1;
+int prev2Left = 1;
+int prev3Left = 1;
+int prev4Left = 1;
+
+int prev1Mid = 1;
+int prev2Mid = 1;
+int prev3Mid = 1;
+int prev4Mid = 1;
+
+int prev1Right = 1;
+int prev2Right = 1;
+int prev3Right = 1;
+int prev4Right = 1;
+
 uint16_t sensorVal[LS_NUM_SENSORS];
 uint16_t sensorCalVal[LS_NUM_SENSORS];
 uint16_t sensorMaxVal[LS_NUM_SENSORS];
@@ -77,6 +101,7 @@ enum decisionStates {
 };
 
 decisionStates currDecState = STARTUP;
+decisionStates prevDecState = STARTUP;
 
 void keep_driving() {
   if (currDecState == SHOOTING_MID) {
@@ -437,6 +462,7 @@ void intersectionDecision() {
     }
     else {
       stopper();
+      prevDecState = currDecState;
       currDecState = DETECTING;
     }
   }
@@ -468,11 +494,13 @@ void intersectionDecision() {
       leftEncTurn = getEncoderLeftCnt();
       rightEncTurn = getEncoderRightCnt();
       turnLeft = true;
+      prevDecState = currDecState;
       currDecState = DETECTING;
     }
   }
   
   else if (currDecState == SHOOTING_MID) {
+    prevDecState = currDecState;
     currDecState = DETECTING;
     shotDone = false;
       offLine = false;
@@ -506,6 +534,7 @@ void intersectionDecision() {
       leftEncTurn = getEncoderLeftCnt();
       rightEncTurn = getEncoderRightCnt();
       turnRight = true;
+      prevDecState = currDecState;
       currDecState = DETECTING;
     }
   }
@@ -684,7 +713,7 @@ void setup() {
   setupEncoder(72, 12, 56, 13);
   prev_t = millis();
 
-  currDecState = SHOOTING_RIGHT;
+  curr = SHOOTING_RIGHT;
 
   setupWaitBtn(LP_LEFT_BTN);
   /* Red led in rgb led */
@@ -705,7 +734,7 @@ void loop() {
     calibrated = true;
   }
 
-  switch (currDecState) {
+  switch (curr) {
     case STARTUP:
       startup();
       break;
