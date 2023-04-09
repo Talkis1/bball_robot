@@ -202,25 +202,7 @@ void getMotorSpeed(uint16_t leftEncSpeed, uint16_t rightEncSpeed) {
   }
 }
 
-void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(115200);
-  setupRSLK();
-  setupEncoder(72, 12, 56, 13);
-  prev_t = millis();
-
-  setupWaitBtn(LP_LEFT_BTN);
-  /* Red led in rgb led */
-  setupLed(RED_LED);
-  clearMinMax(sensorMinVal, sensorMaxVal);
-  pinMode(IRbeaconLeft, INPUT_PULLUP);  // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
-  pinMode(IRbeaconMid, INPUT_PULLUP);
-  pinMode(IRbeaconRight, INPUT_PULLUP);
-}
-
-int counter = 0;
-
-void loop() {
+void detecting() {
   IRStateLeft = digitalRead(IRbeaconLeft);
   IRStateMid = digitalRead(IRbeaconMid);
   IRStateRight = digitalRead(IRbeaconRight);
@@ -228,28 +210,7 @@ void loop() {
   int IRCompLeft = (IRStateLeft + prev1Left + prev2Left + prev3Left + prev4Left) / 5;
   int IRCompMid = (IRStateMid + prev1Mid + prev2Mid + prev3Mid + prev4Mid) / 5;
   int IRCompRight = (IRStateRight + prev1Right + prev2Right + prev3Right + prev4Right) / 5;
-  delay(1);
   
-  Serial.println(IRStateLeft);
-  Serial.println(IRCompLeft);
-
-
-
-  if (IRCompLeft < 1) {
-    digitalWrite(green, HIGH);
-    digitalWrite(red, LOW);
-    currDecState = SHOOTING_LEFT;
-  }
-  else if (IRCompMid<1) {
-    digitalWrite(green, LOW);
-    digitalWrite(red, HIGH);
-    currDecState = SHOOTING_MID;
-  }
-  else if (IRCompRight<1){
-    currDecState = SHOOTING_RIGHT;
-    digitalWrite(green, HIGH);
-    digitalWrite(red, HIGH);
-  }
 
   prev1Left = IRStateLeft;
   prev2Left = prev1Left;
@@ -265,6 +226,59 @@ void loop() {
   prev2Right = prev1Right;
   prev3Right = prev2Right;
   prev4Right = prev3Right;
+  
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(115200);
+  setupRSLK();
+  setupEncoder(72, 12, 56, 13);
+  prev_t = millis();
+
+  setupWaitBtn(LP_LEFT_BTN);
+  /* Red led in rgb led */
+  setupLed(RED_LED);
+  setupLed(GREEN_LED);
+  clearMinMax(sensorMinVal, sensorMaxVal);
+  pinMode(IRbeaconLeft, INPUT_PULLUP);  // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
+  pinMode(IRbeaconMid, INPUT_PULLUP);
+  pinMode(IRbeaconRight, INPUT_PULLUP);
+}
+
+int counter = 0;
+
+void loop() {
+ 
+
+  
+  delay(1);
+  
+  Serial.println(IRStateLeft);
+  Serial.println(IRCompLeft);
+
+
+
+  if (IRCompLeft < 1) {
+    digitalWrite(green, HIGH);
+    digitalWrite(red, LOW);
+    currDecState = SHOOTING_LEFT;
+  }
+  else if (IRCompRight<1) {
+    digitalWrite(green, LOW);
+    digitalWrite(red, HIGH);
+    currDecState = SHOOTING_MID;
+  }
+//  else if (IRCompRight<1){
+//    currDecState = SHOOTING_RIGHT;
+//    digitalWrite(green, HIGH);
+//    digitalWrite(red, HIGH);
+//  }
+   yuelse {
+    digitalWrite(green, LOW);
+    digitalWrite(red, LOW);
+  }
+
   
 
 
