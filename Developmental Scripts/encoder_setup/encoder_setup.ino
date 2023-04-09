@@ -56,6 +56,7 @@ int detectEndTime = 0;
 int leftBeaconCounter = 0;
 int midBeaconCounter = 0;
 int rightBeaconCounter = 0;
+uint16_t LED_ShootingRight = 9;
 
 uint16_t sensorVal[LS_NUM_SENSORS];
 uint16_t sensorCalVal[LS_NUM_SENSORS];
@@ -700,6 +701,9 @@ void detecting() {
     leftBeaconCounter = 0;
     midBeaconCounter = 0;
     rightBeaconCounter = 0;
+    digitalWrite(LED_ShootingRight, LOW);
+    digitalWrite(red, LOW);
+    digitalWrite(green, LOW);
   }
   if (millis() < detectEndTime) {
     IRStateLeft = digitalRead(IRbeaconLeft);
@@ -723,10 +727,13 @@ void detecting() {
     //set new currDecState Variable here
     if (leftBeaconCounter > midBeaconCounter && leftBeaconCounter > rightBeaconCounter) {
       currDecState = SHOOTING_LEFT;
+      digitalWrite(green, HIGH);
     } else if (midBeaconCounter > leftBeaconCounter && midBeaconCounter > rightBeaconCounter) {
       currDecState = SHOOTING_MID;
+      digitalWrite(red, HIGH);
     } else if (rightBeaconCounter > leftBeaconCounter && rightBeaconCounter > midBeaconCounter) {
       currDecState = SHOOTING_RIGHT;
+      digitalWrite(LED_ShootingRight, HIGH);
     }
   }
 
@@ -739,7 +746,7 @@ void setup() {
   setupEncoder(72, 12, 56, 13);
   prev_t = millis();
 
-  curr = SHOOTING_RIGHT;
+  //currDecState = SHOOTING_RIGHT;
 
   setupWaitBtn(LP_LEFT_BTN);
   /* Red led in rgb led */
@@ -760,7 +767,7 @@ void loop() {
     calibrated = true;
   }
 
-  switch (curr) {
+  switch (currDecState) {
     case STARTUP:
       startup();
       break;

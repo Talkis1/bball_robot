@@ -15,6 +15,8 @@ int detectEndTime = 0;
 int leftBeaconCounter = 0;
 int midBeaconCounter = 0;
 int rightBeaconCounter = 0;
+uint16_t LED_ShootingRight = 9;
+
 
 
 uint16_t rightSpeed = 5;
@@ -200,6 +202,9 @@ void detecting() {
     leftBeaconCounter = 0;
     midBeaconCounter = 0;
     rightBeaconCounter = 0;
+    digitalWrite(LED_ShootingRight, LOW);
+    digitalWrite(red, LOW);
+    digitalWrite(green, LOW);
   }
   if (millis() < detectEndTime) {
     IRStateLeft = digitalRead(IRbeaconLeft);
@@ -223,10 +228,13 @@ void detecting() {
     //set new currDecState Variable here
     if (leftBeaconCounter > midBeaconCounter && leftBeaconCounter > rightBeaconCounter) {
       currDecState = SHOOTING_LEFT;
+      digitalWrite(red, HIGH);
     } else if (midBeaconCounter > leftBeaconCounter && midBeaconCounter > rightBeaconCounter) {
       currDecState = SHOOTING_MID;
+      digitalWrite(green, HIGH);
     } else if (rightBeaconCounter > leftBeaconCounter && rightBeaconCounter > midBeaconCounter) {
       currDecState = SHOOTING_RIGHT;
+      digitalWrite(LED_ShootingRight, HIGH);
     }
   }
 
@@ -252,15 +260,6 @@ void setup() {
 int counter = 0;
 
 void loop() {
-
-
-
-
-
-
-
-
-
-
+  detecting();
 
 }
