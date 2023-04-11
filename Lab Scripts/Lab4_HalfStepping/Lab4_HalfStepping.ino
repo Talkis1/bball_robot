@@ -13,6 +13,7 @@ pinMode(IN4, OUTPUT);
 }
 void loop() {
   // Turn by input angle using full stepping
+//  Serial.println(1);
   if (Serial.available() != 0){
     int angle = Serial.parseInt();
     int steps = angle/0.135;
