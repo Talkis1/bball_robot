@@ -4,18 +4,17 @@
 #define green GREEN_LED
 #define red RED_LED
 int IRbeaconLeft = 14;
-int IRStateLeft = 1;
-int IRbeaconMid = 18;
-int IRStateMid = 1;
+int IRStateLeft;
+int IRbeaconMid = 15;
+int IRStateMid;
 int IRbeaconRight = 17;
-int IRStateRight = 1;
+int IRStateRight;
 
 int detectStartTime = 0;
 int detectEndTime = 0;
 int leftBeaconCounter = 0;
 int midBeaconCounter = 0;
 int rightBeaconCounter = 0;
-uint16_t LED_ShootingRight = 9;
 
 
 uint16_t sensorVal[LS_NUM_SENSORS];
@@ -38,37 +37,34 @@ decisionStates currDecState = DETECTING;
 decisionStates prevDecState = STARTUP;
 
 void detecting() {
-  Serial.println("detecting");
   if (currDecState == DETECTING) {
     if (prevDecState != currDecState) {
       detectStartTime = millis();
-      detectEndTime = detectStartTime + 5000;
+      detectEndTime = detectStartTime + 500000 ;
       leftBeaconCounter = 0;
       midBeaconCounter = 0;
       rightBeaconCounter = 0;
-      digitalWrite(LED_ShootingRight, LOW);
       digitalWrite(red, LOW);
       digitalWrite(green, LOW);
     }
     if (millis() < detectEndTime) {
-      Serial.println("reading");
       IRStateLeft = digitalRead(IRbeaconLeft);
       IRStateMid = digitalRead(IRbeaconMid);
       IRStateRight = digitalRead(IRbeaconRight);
 
       if (IRStateLeft == 0) {
         leftBeaconCounter++;
-        Serial.print("leftBeaconCounter:");
+        Serial.print("LEFT: ");
         Serial.println(leftBeaconCounter);
       }
       if (IRStateMid == 0) {
         midBeaconCounter++;
-        Serial.print("midBeaconCounter:");
+        Serial.print("MID: ");
         Serial.println(midBeaconCounter);
       }
       if (IRStateRight == 0) {
         rightBeaconCounter++;
-        Serial.print("rightBeaconCounter:");
+        Serial.print("RIGHT: ");
         Serial.println(rightBeaconCounter);
       }
 
@@ -80,15 +76,18 @@ void detecting() {
       if (leftBeaconCounter > midBeaconCounter && leftBeaconCounter > rightBeaconCounter) {
         currDecState = SHOOTING_LEFT;
         digitalWrite(red, HIGH);
-        Serial.println("shoot left");
       } else if (midBeaconCounter > leftBeaconCounter && midBeaconCounter > rightBeaconCounter) {
         currDecState = SHOOTING_MID;
         digitalWrite(green, HIGH);
         Serial.println("shoot mid");
       } else if (rightBeaconCounter > leftBeaconCounter && rightBeaconCounter > midBeaconCounter) {
         currDecState = SHOOTING_RIGHT;
-        digitalWrite(LED_ShootingRight, HIGH);
         Serial.println("shoot right");
+      }
+      else {
+        Serial.println("NONE DETECTED");
+        detectStartTime = millis();
+        detectEndTime = detectStartTime + 5000;
       }
     }
 

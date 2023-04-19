@@ -94,45 +94,12 @@ decisionStates currDecState;
 decisionStates prevDecState;
 
 void keep_driving() {
-  if (currDecState == SHOOTING_MID) {
-    if (offLine) {
-      if ((((getEncoderLeftCnt() - leftEncTurn) < basketEncDist) && ((getEncoderRightCnt() - rightEncTurn) < basketEncDist)) || backwards) {
-        getMotorSpeed(normalEncSpeed, normalEncSpeed);
-        enableMotor(BOTH_MOTORS);
-        if (backwards) {
-          setMotorDirection(BOTH_MOTORS, MOTOR_DIR_BACKWARD);
-        }
-        else {
-          setMotorDirection(BOTH_MOTORS, MOTOR_DIR_FORWARD);
-        }
-        setMotorSpeed(RIGHT_MOTOR, rightSpeed);
-        setMotorSpeed(LEFT_MOTOR, leftSpeed);
-        if (millis() < detectEndTime) {
-          IRStateMid = digitalRead(IRbeaconMid);
-          if (IRStateMid == 0) {
-            midBeaconCounter++;
-          }
-        }
-        else {
-          if (midBeaconCounter == 0) {
-            backwards = true;
-          }
-          else {
-            detectEndTime = millis() + 500;
-          }
-        }
-      }
-      else {
-        shooting();
-      }
-    }
-    else {
-      leftEncTurn = getEncoderLeftCnt();
-      rightEncTurn = getEncoderRightCnt();
-      detectEndTime = millis() + 500;
-      midBeaconCounter = 0;
-      offLine = true;
-    }
+  if (currDecState == SHOOTING_MID || (currDecState == SHOOTING_LEFT || currDecState == SHOOTING_RIGHT) && intersection_counter == 1) {
+    leftEncTurn = getEncoderLeftCnt();
+    rightEncTurn = getEncoderRightCnt();
+    detectEndTime = millis() + 500;
+    midBeaconCounter = 0;
+    offLine = true;
   }
   else {
     getMotorSpeed(normalEncSpeed, normalEncSpeed);
@@ -311,6 +278,11 @@ void followLine() {
     Serial.println("Aligning with Intersection");
   }
 
+  else if (offLine || linePos < 1500) {
+    currLineState = NO_LINE;
+    Serial.println("No Line");
+  }
+
   else if (linePos >= 1500 && linePos < 3000) {  // linePos spits out a weighted average of sensorVal where below 3000 is the sensors on the left seeing darker
     if (prevLineState != RIGHT_OF_LINE) {
       startT = millis();
@@ -346,9 +318,6 @@ void followLine() {
       currLineState = CENTERED;
       Serial.println("Centered");
     }
-  } else {
-    currLineState = NO_LINE;
-    Serial.println("No Line");
   }
   switch (currLineState) {
     case CENTERED:
@@ -553,36 +522,27 @@ void driveOffLine() {
     keep_driving();
   }
   else {
-    if (offLine) {
-      if ((((getEncoderLeftCnt() - leftEncTurn) < basketEncDist) && ((getEncoderRightCnt() - rightEncTurn) < basketEncDist)) || backwards) {
-        keep_driving();
-        Serial.println(getEncoderLeftCnt() - leftEncTurn);
-        if (millis() < detectEndTime) {
-          IRStateMid = digitalRead(IRbeaconMid);
-          if (IRStateMid == 0) {
-            midBeaconCounter++;
-          }
-        }
-        else {
-          if (midBeaconCounter == 0) {
-            backwards = true;
-          }
-          else {
-            detectEndTime = millis() + 500;
-          }
+    if ((((getEncoderLeftCnt() - leftEncTurn) < basketEncDist) && ((getEncoderRightCnt() - rightEncTurn) < basketEncDist)) || backwards) {
+      keep_driving();
+      Serial.println(getEncoderLeftCnt() - leftEncTurn);
+      if (millis() < detectEndTime) {
+        IRStateMid = digitalRead(IRbeaconMid);
+        if (IRStateMid == 0) {
+          midBeaconCounter++;
         }
       }
       else {
-        shooting();
-        Serial.println("Shooting");
+        if (midBeaconCounter == 0) {
+          backwards = true;
+        }
+        else {
+          detectEndTime = millis() + 500;
+        }
       }
     }
     else {
-      leftEncTurn = getEncoderLeftCnt();
-      rightEncTurn = getEncoderRightCnt();
-      detectEndTime = millis() + 500;
-      midBeaconCounter = 0;
-      offLine = true;
+      shooting();
+      Serial.println("Shooting");
     }
   }
 }
