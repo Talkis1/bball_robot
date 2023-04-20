@@ -12,7 +12,11 @@
 #define IN4 5
 
 hcrs04 mySensor(PINTRIG, PINECHO);
-
+bool left45 = false;
+bool right45 = false;
+const int PWMoutp = 18;
+const int PWMoutn = 19;
+const int PWMspeedPin = 38;
 uint16_t rightSpeed = 5;
 uint16_t leftSpeed = 5;
 uint16_t slowEncSpeed = 2;
@@ -41,6 +45,7 @@ bool scanning = false;
 bool offLine = false;
 bool leavingInt = false;
 bool backwards = false;
+bool shotDone = false;
 bool startRight;
 float distArray[73];
 float minDistVal;
@@ -237,22 +242,22 @@ void ninety_left() {  // needs to be tuned for a 90 degree turn through either t
 
 void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(normalEncSpeed, normalEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 180) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < 90) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 180) {
+  if ((getEncoderRightCnt() - rightEncTurn) < 90) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
-    turnLeft = false;
+  if (((getEncoderRightCnt() - rightEncTurn) > 90) && ((getEncoderLeftCnt() - leftEncTurn) > 90)) {
+    left45 = false;
     if (currDecState == SHOOTING_LEFT && intersection_counter > 2) {
       currDecState = DETECTING;
       stopper();
@@ -264,23 +269,23 @@ void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 
 
 void turnRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(normalEncSpeed, normalEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 180) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < 90) {
     enableMotor(LEFT_MOTOR);
-    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 180) {
+  if ((getEncoderRightCnt() - rightEncTurn) < 90) {
     enableMotor(RIGHT_MOTOR);
-    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
-    turnLeft = false;
-    if (currDecState == SHOOTING_LEFT && intersection_counter > 2) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 90) && ((getEncoderLeftCnt() - leftEncTurn) > 90)) {
+    right45 = false;
+    if (currDecState == SHOOTING_RIGHT && intersection_counter > 2) {
       currDecState = DETECTING;
       stopper();
     }
@@ -723,9 +728,41 @@ void driving() {
 
 void shooting() {
   // turn on motor
-  stopper();
-  delay(5000);
-  backwards = true;
+  if (right45) {
+    turnRightBasket();
+  }
+  else if (left45) {
+    turnLeftBasket();
+  }
+  else if (shotDone) {
+    stopper();
+    currDecState = DETECTING;
+  }
+  else {
+    stopper();
+    digitalWrite(PWMoutp, HIGH);
+    digitalWrite(PWMoutn, LOW);
+    
+    if (currDecState == SHOOTING_MID){
+      analogWrite(PWMspeedPin,abs(200));
+    }
+    else {
+      analogWrite(PWMspeedPin,abs(250));
+    }
+    delay(1000);
+    loadSteph();
+    delay(1000);
+    digitalWrite(PWMoutp, LOW);
+    if (currDecState == SHOOTING_LEFT) {
+      right45 = true;
+    }
+    if (currDecState == SHOOTING_RIGHT) {
+      left45 = true;
+    }
+    shotDone = true;
+  }
+  digitalWrite(PWMoutp, HIGH);
+  digitalWrite(PWMoutn, LOW);
 }
 
 void startup() {
@@ -876,12 +913,13 @@ void detecting() {
   } 
   
   else {
+    shotDone = false;
     //set new currDecState Variable here
     if (leftBeaconCounter > midBeaconCounter && leftBeaconCounter > rightBeaconCounter) {
       currDecState = SHOOTING_LEFT;
       leftEncTurn = getEncoderLeftCnt();
       rightEncTurn = getEncoderRightCnt();
-      turnLeft = true;
+      left45 = true;
       Serial.println("Shooting Left");
       intersection_counter = 0;
     } 
@@ -893,7 +931,7 @@ void detecting() {
       currDecState = SHOOTING_RIGHT;
       leftEncTurn = getEncoderLeftCnt();
       rightEncTurn = getEncoderRightCnt();
-      turnRight = true;
+      right45 = true;
       Serial.println("Shooting Right");
       intersection_counter = 0;
     }
@@ -911,6 +949,12 @@ void setup() {
   prev_t = millis();
   currDecState = STARTUP;
   
+  pinMode(PWMoutp, OUTPUT);
+  pinMode(PWMoutn, OUTPUT);
+  pinMode(PWMspeedPin, OUTPUT);
+  digitalWrite(PWMoutp, LOW);
+  digitalWrite(PWMoutn, LOW);
+
 
   //currDecState = SHOOTING_RIGHT;
   pinMode(IRbeaconLeft, INPUT_PULLUP);  // NOTE: because this is a pullup, a 1 indicates no beacon detected, 0 is yes beacon detected
@@ -945,13 +989,16 @@ void loop() {
       detecting();
       break;
     case SHOOTING_RIGHT:
-      driving();
+      shooting();
       break;
     case SHOOTING_LEFT:
-      driving();
+      shooting();
       break;
     case SHOOTING_MID:
-      driving();
+      shooting();
+      break;
+    case REGROUP:
+      backToCenter();
       break;
   }
   prevDecState = currDecState;

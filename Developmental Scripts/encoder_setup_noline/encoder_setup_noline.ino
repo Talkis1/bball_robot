@@ -557,9 +557,28 @@ void driving() {
   }
 }
 
-void shooting() {
+void shootingSide() {
   // turn on motor
   stopper();
+  digitalWrite(PWMoutp, HIGH);
+  digitalWrite(PWMoutn, LOW);
+  if (currDecState == SHOOTING_MID){
+    analogWrite(PWMspeedPin,abs(200));
+  }
+  else{
+    analogWrite(PWMspeedPin,abs(250));
+  }
+    
+  delay(1000);
+  backwards = true;
+}
+
+void shootingMid() {
+  // turn on motor
+  stopper();
+  digitalWrite(PWMoutp, HIGH);
+  digitalWrite(PWMoutn, LOW);
+  analogWrite(PWMspeedPin,abs(250));
   delay(5000);
   backwards = true;
 }
