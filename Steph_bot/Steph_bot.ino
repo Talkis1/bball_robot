@@ -997,9 +997,6 @@ void loop() {
     case SHOOTING_MID:
       shooting();
       break;
-    case REGROUP:
-      backToCenter();
-      break;
   }
   prevDecState = currDecState;
 }

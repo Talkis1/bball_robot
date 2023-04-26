@@ -22,6 +22,11 @@ uint32_t right_enc_speed;
 uint32_t leftEncTurn;
 uint32_t rightEncTurn;
 uint32_t pingEncVal;
+int KpLine = 1;
+int KiLine = 1;
+int KdLine = 1;
+int LineError;
+int lastError = 0;
 int encoder_t = 15;
 int prev_t;
 bool calibrated = false;
@@ -77,6 +82,7 @@ int intersection_counter = 0;
 uint8_t lineColor = DARK_LINE;
 
 enum lineStates {
+  SHOT_CENTERED,
   CENTERED,
   LEFT_OF_LINE,
   RIGHT_OF_LINE,
@@ -345,7 +351,31 @@ void getMotorSpeed(uint16_t leftEncSpeed, uint16_t rightEncSpeed) {
     }
   }
 }
+void PIDLineFollow(){
+  readLineSensor(sensorVal);
+  readCalLineSensor(sensorVal,
+                    sensorCalVal,
+                    sensorMinVal,
+                    sensorMaxVal,
+                    lineColor);
 
+  uint32_t linePos = getLinePosition(sensorCalVal, lineColor);
+  LineError = linePos - 3250; //what is the current position?
+  int P = LineError;
+  int I = I + LineError;
+  int D = LineError - lastError;
+  lastError = LineError;
+  float motorspeed = P*KpLine + I*KiLine + D*KdLine;
+  int motorspeedRight = rightSpeed + motorspeed;
+  int motorspeedLeft = leftSpeed - motorspeed;
+  enableMotor(BOTH_MOTORS);
+  setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+  setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
+  setMotorSpeed(RIGHT_MOTOR, motorspeedRight);
+  setMotorSpeed(LEFT_MOTOR, motorspeedLeft);
+
+
+}
 void followLine() {
   readLineSensor(sensorVal);
   readCalLineSensor(sensorVal,
@@ -355,6 +385,7 @@ void followLine() {
                     lineColor);
 
   uint32_t linePos = getLinePosition(sensorCalVal, lineColor);
+
 
   if (AtIntersection()) {
     if (backwards) {
@@ -391,9 +422,11 @@ void followLine() {
   }
 
   else if (currDecState == SHOOTING_MID) {
-    currLineState = CENTERED;
+    currLineState = SHOT_CENTERED;
   }
-  
+  // else{
+  //   PIDLineFollow();
+  // }
   else if (linePos >= 1500 && linePos < 3000) {  // linePos spits out a weighted average of sensorVal where below 3000 is the sensors on the left seeing darker
     if (prevLineState != RIGHT_OF_LINE) {
       startT = millis();
@@ -430,20 +463,30 @@ void followLine() {
     }
   }
   switch (currLineState) {
-    case CENTERED:
+    case SHOT_CENTERED:
       keep_driving();
+    case CENTERED:
+      // keep_driving();
+      PIDLineFollow();
+
       break;
     case LEFT_OF_LINE:
-      turn_right();
+      // turn_right();
+      PIDLineFollow();
+
       break;
     case RIGHT_OF_LINE:
-      turn_left();
+      // turn_left();
+      PIDLineFollow();
+
       break;
     case CORRECT_LEFT:
       turn_left();
+
       break;
     case CORRECT_RIGHT:
       turn_right();
+
       break;
     case AT_INTERSECTION:
       keep_driving();
