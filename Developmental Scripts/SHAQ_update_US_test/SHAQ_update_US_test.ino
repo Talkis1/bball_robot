@@ -32,12 +32,23 @@ int startT = 0;
 bool turnLeft = false;
 bool turnRight = false;
 bool turnCenter = false;
+bool right45 = false;
+bool left45 = false;
+bool correctLeft = false;
+bool correctRight = false;
+bool nudgeLeft = false;
+bool nudgeRight = false;
+bool shotDone = false;
 bool scanning = false;
 bool offLine = false;
 bool leavingInt = false;
 bool backwards = false;
 bool startRight;
-float distArray[73];
+float distArray[145];
+float correctArray[20];
+float correctAvg;
+float prevCorrect;
+int correctIdx;
 float minDistVal;
 int minDistIdx;
 int centerIdx;
@@ -52,6 +63,12 @@ int IRStateRight;
 int PWM_IN = 18;
 int PWM_OUT = 19;
 int PWM_SPEED = 38;
+const int encoder0PinA = 32;
+const int encoder1PinA = 33;
+const int encoder0PinB = 34;
+const int encoder1PinB = 35;
+volatile signed int DCencoderPos = 0;
+signed int DCencoderPosLast = 0;
 
 int detectStartTime = 0;
 int detectEndTime = 0;
@@ -96,6 +113,50 @@ enum decisionStates {
 decisionStates currDecState;
 decisionStates prevDecState;
 decisionStates prevDecState1 ;
+
+void doEncoderA(){
+  if (digitalRead(encoder0PinA) == HIGH) {   // found a low-to-high on channel A
+    if (digitalRead(encoder0PinB) == LOW) {  // check channel B to see which way
+                                             // encoder is turning
+      DCencoderPos = DCencoderPos + 1;         // CCW
+    } 
+    else {
+      DCencoderPos = DCencoderPos - 1;         // CW
+}
+  }
+  else                                        // found a high-to-low on channel A
+  { 
+    if (digitalRead(encoder0PinB) == LOW) {   // check channel B to see which way
+                                              // encoder is turning  
+      DCencoderPos = DCencoderPos - 1;          // CW
+    } 
+    else {
+      DCencoderPos = DCencoderPos + 1;          // CCW
+    }
+  }
+}
+
+void doEncoderB(){
+  if (digitalRead(encoder0PinB) == HIGH) {   // found a low-to-high on channel A
+    if (digitalRead(encoder0PinA) == LOW) {  // check channel B to see which way
+                                             // encoder is turning
+      DCencoderPos = DCencoderPos - 1;         // CCW
+    } 
+    else {
+      DCencoderPos = DCencoderPos + 1;         // CW
+}
+  }
+  else                                        // found a high-to-low on channel A
+  { 
+    if (digitalRead(encoder0PinA) == LOW) {   // check channel B to see which way
+                                              // encoder is turning  
+      DCencoderPos = DCencoderPos + 1;          // CW
+    } 
+    else {
+      DCencoderPos = DCencoderPos - 1;          // CCW
+    }
+  }
+}
 
 void test_driving() {
   if ((((getEncoderLeftCnt() - leftEncTurn) < basketEncDist) && ((getEncoderRightCnt() - rightEncTurn) < basketEncDist)) || backwards) {
@@ -212,8 +273,151 @@ void ninety_left() {  // needs to be tuned for a 90 degree turn through either t
       stopper();
     }
   }
-  Serial.println(getEncoderLeftCnt() - leftEncTurn);
-  Serial.println(getEncoderRightCnt() - rightEncTurn);
+}
+
+void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 left but will maybe need to tune
+  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 80) {
+    enableMotor(LEFT_MOTOR);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  } else {
+    disableMotor(LEFT_MOTOR);
+  }
+  if ((getEncoderRightCnt() - rightEncTurn) < 80) {
+    enableMotor(RIGHT_MOTOR);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  } else {
+    disableMotor(RIGHT_MOTOR);
+  }
+  if (((getEncoderRightCnt() - rightEncTurn) > 80) && ((getEncoderLeftCnt() - leftEncTurn) > 80)) {
+    left45 = false;
+  }
+}
+
+void turnRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
+  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 80) {
+    enableMotor(LEFT_MOTOR);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  } else {
+    disableMotor(LEFT_MOTOR);
+  }
+  if ((getEncoderRightCnt() - rightEncTurn) < 80) {
+    enableMotor(RIGHT_MOTOR);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  } else {
+    disableMotor(RIGHT_MOTOR);
+  }
+  if (((getEncoderRightCnt() - rightEncTurn) > 80) && ((getEncoderLeftCnt() - leftEncTurn) > 80)) {
+    right45 = false;
+  }
+}
+
+void correctRightBasket() {
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
+  enableMotor(LEFT_MOTOR);
+  setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
+  setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  enableMotor(RIGHT_MOTOR);
+  setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+  setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  correctArray[correctIdx] = mySensor.read();
+  correctIdx = correctIdx + 1;
+  if (correctIdx > 19) {
+    correctIdx = 0;
+    prevCorrect = correctAvg;
+    correctAvg = 0;
+    for (int i = 0; i < 20; i++) {
+      correctAvg = correctAvg + correctArray[i];
+    }
+    correctAvg = correctAvg / 20;
+    if (correctAvg > prevCorrect) {
+      leftEncTurn = getEncoderLeftCnt();
+      rightEncTurn = getEncoderRightCnt();
+      nudgeLeft = true;
+      correctRight = false;
+    }
+  }
+}
+
+void correctLeftBasket() {
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
+  enableMotor(LEFT_MOTOR);
+  setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
+  setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  enableMotor(RIGHT_MOTOR);
+  setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
+  setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  correctArray[correctIdx] = mySensor.read();
+  correctIdx = correctIdx + 1;
+  if (correctIdx > 19) {
+    correctIdx = 0;
+    prevCorrect = correctAvg;
+    correctAvg = 0;
+    for (int i = 0; i < 20; i++) {
+      correctAvg = correctAvg + correctArray[i];
+    }
+    correctAvg = correctAvg / 20;
+    Serial.print("AVG: ");
+    Serial.println(correctAvg);
+    if (correctAvg > prevCorrect) {
+      leftEncTurn = getEncoderLeftCnt();
+      rightEncTurn = getEncoderRightCnt();
+      correctLeft = false;
+      nudgeRight = true;
+    }
+  }
+}
+
+
+void nudge_left() {  // needs to be tuned for a 90 degree turn through either time or encoder
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 15) {
+    enableMotor(LEFT_MOTOR);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  } else {
+    disableMotor(LEFT_MOTOR);
+  }
+  if ((getEncoderRightCnt() - rightEncTurn) < 15) {
+    enableMotor(RIGHT_MOTOR);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  } else {
+    disableMotor(RIGHT_MOTOR);
+  }
+  if (((getEncoderRightCnt() - rightEncTurn) > 15) && ((getEncoderLeftCnt() - leftEncTurn) > 15)) {
+    currDecState = DETECTING;
+    nudgeLeft = false;
+    stopper();
+  }
+}
+
+void nudge_right() {  // needs to be tuned for a 90 degree turn through either time or encoder
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 15) {
+    enableMotor(LEFT_MOTOR);
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
+    setMotorSpeed(LEFT_MOTOR, leftSpeed);
+  } else {
+    disableMotor(LEFT_MOTOR);
+  }
+  if ((getEncoderRightCnt() - rightEncTurn) < 15) {
+    enableMotor(RIGHT_MOTOR);
+    setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
+    setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+  } else {
+    disableMotor(RIGHT_MOTOR);
+  }
+  if (((getEncoderRightCnt() - rightEncTurn) > 15) && ((getEncoderLeftCnt() - leftEncTurn) > 15)) {
+    currDecState = DETECTING;
+    nudgeRight = false;
+    stopper();
+  }
 }
 
 void stopper() {
@@ -234,8 +438,6 @@ void turnTest() {
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
     curr = millis();
   }
-  Serial.println(getEncoderLeftCnt() - leftEncStart);
-  Serial.println(getEncoderRightCnt() - rightEncStart);
 }
 
 void getMotorSpeed(uint16_t leftEncSpeed, uint16_t rightEncSpeed) {
@@ -485,8 +687,10 @@ void intersectionDecision() {
     }
     else {
       stopper();
-      Serial.println("3");
-      currDecState = DETECTING;
+      leftEncTurn = getEncoderLeftCnt();
+      rightEncTurn = getEncoderRightCnt();
+      left45 = true;
+      correctLeft = true;
     }
   }
   else if (currDecState == SHOOTING_LEFT) {
@@ -590,22 +794,78 @@ void driveOffLine() {
 void driving() {
   if (turnLeft) {
     ninety_left();
-  } else if (turnRight) {
+  } 
+  else if (turnRight) {
     ninety_right();
-  } else {
+  }
+  else if (right45) {
+    turnRightBasket();
+  } 
+  else if (left45) {
+    turnLeftBasket();
+  }
+  else if (correctRight) {
+    correctRightBasket();
+  } 
+  else if (correctLeft) {
+    correctLeftBasket();
+  }
+  else if (nudgeLeft) {
+    nudge_left();
+  }
+  else if (nudgeRight) {
+    nudge_right();
+  }
+  else {
     followLine();
   }
 }
 
 void shooting() {
   // turn on motor
-  stopper();
-  digitalWrite(PWM_IN, HIGH);
-  digitalWrite(PWM_OUT, LOW);
-  analogWrite(PWM_SPEED, 254);
-  delay(1000);
-  digitalWrite(PWM_IN, LOW);
-  backwards = true;
+  Serial.println("Shooting");
+  if (right45) {
+    turnRightBasket();
+  }
+  else if (left45) {
+    turnLeftBasket();
+  }
+  else if (correctRight) {
+    correctRightBasket();
+  } 
+  else if (correctLeft) {
+    correctLeftBasket();
+  }
+    else if (nudgeLeft) {
+    nudge_left();
+  }
+  else if (nudgeRight) {
+    nudge_right();
+  }
+  else {
+    stopper();
+    digitalWrite(PWM_OUT, LOW);
+    digitalWrite(PWM_IN, HIGH);
+    
+    if (currDecState == SHOOTING_MID){
+      analogWrite(PWM_SPEED,abs(180));
+      while (DCencoderPos < 4650){
+      }
+    }
+    else {
+      analogWrite(PWM_SPEED,abs(220));
+      while (DCencoderPos < 4650){
+      }
+    }
+    digitalWrite(PWM_IN, LOW);
+    if (currDecState == SHOOTING_LEFT) {
+      correctLeft = true;
+    }
+    if (currDecState == SHOOTING_RIGHT) {
+      correctRight = true;
+    }
+    DCencoderPos = 0;
+  }
 }
 
 void startup() {
@@ -622,31 +882,32 @@ void startup() {
     scanning = true;
   }
   else if (minDistVal == 10000) {
-    for (int i = 0; i < 72; i = i+1) {
+    for (int i = 0; i < 144; i = i+1) {
       if (distArray[i] < minDistVal) {
         minDistVal = distArray[i];
         minDistIdx = i;
       }
     }
-    int leftIdx = minDistIdx + 18;
-    if (leftIdx > 72) {
-      leftIdx = leftIdx - 72;
-    }
-    int rightIdx = minDistIdx - 18;
-    if (rightIdx < 0) {
-      rightIdx = rightIdx + 72;
-    }
-    Serial.print("LEFT: ");
-    Serial.println(leftIdx);
-    Serial.print("RIGHT: ");
-    Serial.println(rightIdx);
-    if (distArray[leftIdx] < distArray[rightIdx]) {
-      centerIdx = rightIdx;
-      startRight = true;
+    if (intersection_counter == 0) {
+      int leftIdx = minDistIdx + 36;
+      if (leftIdx > 144) {
+        leftIdx = leftIdx - 144;
+      }
+      int rightIdx = minDistIdx - 36;
+      if (rightIdx < 0) {
+        rightIdx = rightIdx + 144;
+      }
+      if (distArray[leftIdx] < distArray[rightIdx]) {
+        centerIdx = rightIdx;
+        startRight = true;
+      }
+      else {
+        centerIdx = leftIdx;
+        startRight = false;
+      }
     }
     else {
-      centerIdx = leftIdx;
-      startRight = false;
+      centerIdx = minDistIdx;
     }
     turnCenter = true; 
     leftEncTurn = getEncoderLeftCnt();
@@ -660,8 +921,8 @@ void faceCenter() {
   getMotorSpeed(normalEncSpeed, normalEncSpeed);
   uint32_t leftEncVal = getEncoderLeftCnt();
   uint32_t rightEncVal = getEncoderRightCnt();
-  if (centerIdx < 36) {
-    if ((leftEncVal - leftEncTurn) < (centerIdx*10)) {
+  if (centerIdx < 72) {
+    if ((leftEncVal - leftEncTurn) < (centerIdx*5)) {
       enableMotor(LEFT_MOTOR);
       setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
       setMotorSpeed(LEFT_MOTOR, leftSpeed);
@@ -669,7 +930,7 @@ void faceCenter() {
     else {
       disableMotor(LEFT_MOTOR);
     }
-    if ((rightEncVal - rightEncTurn) < (centerIdx*10)) {
+    if ((rightEncVal - rightEncTurn) < (centerIdx*5)) {
       enableMotor(RIGHT_MOTOR);
       setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
       setMotorSpeed(RIGHT_MOTOR, rightSpeed);
@@ -677,12 +938,12 @@ void faceCenter() {
     else {
       disableMotor(RIGHT_MOTOR);
     }
-    if (((rightEncVal - rightEncTurn) > (centerIdx*10)) && ((leftEncVal - leftEncTurn) > (centerIdx*10))) {
+    if (((rightEncVal - rightEncTurn) > (centerIdx*5)) && ((leftEncVal - leftEncTurn) > (centerIdx*5))) {
       turnCenter = false;
     }
   }
   else {
-    if ((leftEncVal - leftEncTurn) < (720-(centerIdx*10))) {
+    if ((leftEncVal - leftEncTurn) < (720-(centerIdx*5))) {
       Serial.println("Turning");
       enableMotor(LEFT_MOTOR);
       setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
@@ -691,7 +952,7 @@ void faceCenter() {
     else {
       disableMotor(LEFT_MOTOR);
     }
-    if ((rightEncVal - rightEncTurn) < (720-centerIdx*10)) {
+    if ((rightEncVal - rightEncTurn) < (720-centerIdx*5)) {
       enableMotor(RIGHT_MOTOR);
       setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
       setMotorSpeed(RIGHT_MOTOR, rightSpeed);
@@ -699,8 +960,11 @@ void faceCenter() {
     else {
       disableMotor(RIGHT_MOTOR);
     }
-    if (((rightEncVal - rightEncTurn) > (720-centerIdx*10)) && ((leftEncVal - leftEncTurn) > (720-centerIdx*10))) {
+    if (((rightEncVal - rightEncTurn) > (720-centerIdx*5)) && ((leftEncVal - leftEncTurn) > (720-centerIdx*5))) {
       turnCenter = false;
+//      if (intersection_counter == 3) {
+//        currDecState = DETECTING;
+//      }
     }
   }
 }
@@ -713,7 +977,7 @@ void initialMap() {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
-    if ((leftEncVal - leftEncTurn) > pingEncVal*10) {
+    if ((leftEncVal - leftEncTurn) > pingEncVal*5) {
       distArray[pingEncVal] = mySensor.read();
       pingEncVal = pingEncVal + 1;
     }
@@ -765,24 +1029,22 @@ void detecting() {
       currDecState = SHOOTING_LEFT;
       leftEncTurn = getEncoderLeftCnt();
       rightEncTurn = getEncoderRightCnt();
-      turnLeft = true;
-      Serial.println("Shooting Left");
-      intersection_counter = 0;
+      left45 = true;
     } 
     else if (midBeaconCounter > leftBeaconCounter && midBeaconCounter > rightBeaconCounter) {
       currDecState = SHOOTING_MID;
-      Serial.println("Shooting Mid");
     } 
     else if (rightBeaconCounter > leftBeaconCounter && rightBeaconCounter > midBeaconCounter) {
       currDecState = SHOOTING_RIGHT;
       leftEncTurn = getEncoderLeftCnt();
       rightEncTurn = getEncoderRightCnt();
-      turnRight = true;
-      Serial.println("Shooting Right");
-      intersection_counter = 0;
+      right45 = true;
     }
     else {
       detectEndTime = millis() + 1000;
+      leftBeaconCounter = 0;
+      midBeaconCounter = 0;
+      rightBeaconCounter = 0;
     }
   }
 }
@@ -806,6 +1068,16 @@ void setup() {
   pinMode(PWM_OUT, OUTPUT);
   pinMode(PWM_SPEED, OUTPUT);
 
+ pinMode(encoder0PinA, INPUT_PULLUP);
+ pinMode(encoder0PinB, INPUT_PULLUP);
+ pinMode(encoder1PinA, INPUT_PULLUP);
+ pinMode(encoder1PinB, INPUT_PULLUP);
+ attachInterrupt(encoder0PinA, doEncoderA, RISING); // Interrupt is fired whenever button is pressed
+ attachInterrupt(encoder1PinA, doEncoderA, FALLING);
+ attachInterrupt(encoder0PinB, doEncoderB, RISING);
+ attachInterrupt(encoder1PinB, doEncoderB, FALLING);
+
+
   setupWaitBtn(LP_LEFT_BTN);
   /* Red led in rgb led */
   setupLed(RED_LED);
@@ -815,6 +1087,8 @@ void setup() {
   mySensor.begin(); /* Initialize the sensor */
   distArray[0] = 0;
   minDistVal = 10000;
+  correctIdx = 0;
+  correctAvg = 10000;
   
 }
 
@@ -833,13 +1107,13 @@ void loop() {
       detecting();
       break;
     case SHOOTING_RIGHT:
-      driving();
+      shooting();
       break;
     case SHOOTING_LEFT:
-      driving();
+      shooting();
       break;
     case SHOOTING_MID:
-      driving();
+      shooting();
       break;
   }
     prevDecState = prevDecState1;

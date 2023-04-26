@@ -49,6 +49,15 @@ int IRbeaconMid = 15;
 int IRStateMid;
 int IRbeaconRight = 17;
 int IRStateRight;
+int PWM_IN = 18;
+int PWM_OUT = 19;
+int PWM_SPEED = 38;
+const int encoder0PinA = 32;
+const int encoder1PinA = 33;
+const int encoder0PinB = 34;
+const int encoder1PinB = 35;
+volatile signed int DCencoderPos = 0;
+signed int DCencoderPosLast = 0;
 
 int detectStartTime = 0;
 int detectEndTime = 0;
@@ -92,6 +101,51 @@ enum decisionStates {
 
 decisionStates currDecState;
 decisionStates prevDecState;
+
+void doEncoderA(){
+  if (digitalRead(encoder0PinA) == HIGH) {   // found a low-to-high on channel A
+    if (digitalRead(encoder0PinB) == LOW) {  // check channel B to see which way
+                                             // encoder is turning
+      DCencoderPos = DCencoderPos + 1;         // CCW
+    } 
+    else {
+      DCencoderPos = DCencoderPos - 1;         // CW
+}
+  }
+  else                                        // found a high-to-low on channel A
+  { 
+    if (digitalRead(encoder0PinB) == LOW) {   // check channel B to see which way
+                                              // encoder is turning  
+      DCencoderPos = DCencoderPos - 1;          // CW
+    } 
+    else {
+      DCencoderPos = DCencoderPos + 1;          // CCW
+    }
+  }
+}
+
+void doEncoderB(){
+  if (digitalRead(encoder0PinB) == HIGH) {   // found a low-to-high on channel A
+    if (digitalRead(encoder0PinA) == LOW) {  // check channel B to see which way
+                                             // encoder is turning
+      DCencoderPos = DCencoderPos - 1;         // CCW
+    } 
+    else {
+      DCencoderPos = DCencoderPos + 1;         // CW
+}
+  }
+  else                                        // found a high-to-low on channel A
+  { 
+    if (digitalRead(encoder0PinA) == LOW) {   // check channel B to see which way
+                                              // encoder is turning  
+      DCencoderPos = DCencoderPos + 1;          // CW
+    } 
+    else {
+      DCencoderPos = DCencoderPos - 1;          // CCW
+    }
+  }
+}
+
 
 void keep_driving() {
   if (currDecState == SHOOTING_MID) {
@@ -599,9 +653,16 @@ void driving() {
 
 void shooting() {
   // turn on motor
-  stopper();
-  delay(5000);
-  backwards = true;
+  digitalWrite(PWM_OUT, LOW);
+  analogWrite(PWM_SPEED,abs(180));
+  digitalWrite(PWM_IN, HIGH);
+  while (DCencoderPos < 4670){
+    Serial.print("DC Encoder");
+    Serial.println(DCencoderPos);
+  }
+  digitalWrite(PWM_IN, LOW);
+  DCencoderPos = 0;
+  delay(1000);
 }
 
 void startup() {
@@ -793,6 +854,19 @@ void setup() {
   pinMode(IRbeaconMid, INPUT_PULLUP);
   pinMode(IRbeaconRight, INPUT_PULLUP);
 
+  pinMode(encoder0PinA, INPUT_PULLUP);
+  pinMode(encoder0PinB, INPUT_PULLUP);
+  pinMode(encoder1PinA, INPUT_PULLUP);
+  pinMode(encoder1PinB, INPUT_PULLUP);
+  pinMode(PWM_IN, OUTPUT);
+  pinMode(PWM_OUT, OUTPUT);
+  pinMode(PWM_SPEED, OUTPUT);
+  attachInterrupt(encoder0PinA, doEncoderA, RISING); // Interrupt is fired whenever button is pressed
+  attachInterrupt(encoder1PinA, doEncoderA, FALLING);
+  attachInterrupt(encoder0PinB, doEncoderB, RISING);
+  attachInterrupt(encoder1PinB, doEncoderB, FALLING);
+  
+
   setupWaitBtn(LP_LEFT_BTN);
   /* Red led in rgb led */
   setupLed(RED_LED);
@@ -807,28 +881,29 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  if (!calibrated) {
-    floorCalibration();
-    calibrated = true;
-  }
-
-  switch (currDecState) {
-    case STARTUP:
-      startup();
-      break;
-    case DETECTING:
-      detecting();
-      break;
-    case SHOOTING_RIGHT:
-      driving();
-      break;
-    case SHOOTING_LEFT:
-      driving();
-      break;
-    case SHOOTING_MID:
-      driving();
-      break;
-  }
-  prevDecState = currDecState;
+//  // put your main code here, to run repeatedly:
+//  if (!calibrated) {
+//    floorCalibration();
+//    calibrated = true;
+//  }
+//
+//  switch (currDecState) {
+//    case STARTUP:
+//      startup();
+//      break;
+//    case DETECTING:
+//      detecting();
+//      break;
+//    case SHOOTING_RIGHT:
+//      driving();
+//      break;
+//    case SHOOTING_LEFT:
+//      driving();
+//      break;
+//    case SHOOTING_MID:
+//      driving();
+//      break;
+//  }
+//  prevDecState = currDecState;
+  shooting();
 }
