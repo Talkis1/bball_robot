@@ -7,12 +7,15 @@
 #define red RED_LED
 
 hcrs04 mySensor(PINTRIG, PINECHO);
+// variables that are responsible for High PWM to overcome static friction that is then lowered
+bool getMotorFirst = true;
+uint16_t FrictionOvercomeSpeed = 20;
 
 uint16_t rightSpeed = 5;
 uint16_t leftSpeed = 5;
-uint16_t slowEncSpeed = 2;
-uint16_t normalEncSpeed = 4;
-uint16_t fastEncSpeed = 6;
+uint16_t slowEncSpeed = 3; // this number controls how fast the motor spins when it rotates
+uint16_t normalEncSpeed = 5;
+uint16_t fastEncSpeed = 7;
 uint32_t left_enc_curr;
 uint32_t right_enc_curr;
 uint32_t left_enc_prev;
@@ -40,7 +43,7 @@ bool offLine = false;
 bool leavingInt = false;
 bool backwards = false;
 bool startRight;
-float distArray[145];
+float distArray[153];
 float minDistVal;
 int minDistIdx;
 int centerIdx;
@@ -218,7 +221,7 @@ void turn_left() {
 }
 
 void ninety_right() {  // needs to be tuned for a 90 degree turn through either time or encoder
-  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
   if ((getEncoderLeftCnt() - leftEncTurn) < 180) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
@@ -235,54 +238,57 @@ void ninety_right() {  // needs to be tuned for a 90 degree turn through either 
   }
   if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
     turnRight = false;
+    stopper();
   }
 }
 
 void ninety_left() {  // needs to be tuned for a 90 degree turn through either time or encoder
-  getMotorSpeed(normalEncSpeed, normalEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 180) {
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 190) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 180) {
+  if ((getEncoderRightCnt() - rightEncTurn) < 190) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 180) && ((getEncoderLeftCnt() - leftEncTurn) > 180)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 190) && ((getEncoderLeftCnt() - leftEncTurn) > 190)) {
     turnLeft = false;
+    stopper();
   }
 }
 
 void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 left but will maybe need to tune
-  getMotorSpeed(normalEncSpeed, normalEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 80) {
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
+  if ((getEncoderLeftCnt() - leftEncTurn) < 90) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 80) {
+  if ((getEncoderRightCnt() - rightEncTurn) < 90) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 80) && ((getEncoderLeftCnt() - leftEncTurn) > 80)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 90) && ((getEncoderLeftCnt() - leftEncTurn) > 90)) {
     left45 = false;
+    stopper();
     Serial.println("STOP TURN");
   }
 }
 
 void turnRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
-  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
   if ((getEncoderLeftCnt() - leftEncTurn) < 80) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
@@ -299,11 +305,13 @@ void turnRightBasket(){ // copied the turn ninety right, will most likely turn 4
   }
   if (((getEncoderRightCnt() - rightEncTurn) > 80) && ((getEncoderLeftCnt() - leftEncTurn) > 80)) {
     right45 = false;
+    stopper();
   }
 }
 
 void stopper() {
   disableMotor(BOTH_MOTORS);
+  getMotorFirst = true;
 }
 
 void turnTest() {
@@ -323,7 +331,12 @@ void turnTest() {
 }
 
 void getMotorSpeed(uint16_t leftEncSpeed, uint16_t rightEncSpeed) {
-  if ((millis() - prev_t) > encoder_t) {
+  if(getMotorFirst){ // this applies a high PWM value to overcome static friction then allows the lower operationg PWM for the rest of the motion
+    leftSpeed = FrictionOvercomeSpeed;
+    rightSpeed = FrictionOvercomeSpeed;
+    getMotorFirst = false;
+  }
+  else if ((millis() - prev_t) > encoder_t) {
     left_enc_curr = getEncoderLeftCnt();
     right_enc_curr = getEncoderRightCnt();
     left_enc_speed = left_enc_curr - left_enc_prev;
@@ -372,7 +385,7 @@ void followLine() {
       Serial.println("At Intersection");
     }
   }
-  else if (!AtIntersection() && prevLineState == AT_INTERSECTION && (millis()-startT) > 50) {
+  else if (!AtIntersection() && prevLineState == AT_INTERSECTION && (millis()-startT) > 50s0) {
     currLineState = INTERSECTION_DECISION;
     intersection_counter = intersection_counter + 1;
     Serial.println("Deciding Intersection");
@@ -702,19 +715,20 @@ void shooting() {
     shotDone = false;
   }
   else {
+    DCencoderPos = 0;
     stopper();
     digitalWrite(PWM_OUT, LOW);
     digitalWrite(PWM_IN, HIGH);
     Serial.println("SHOOTING");
     
     if (currDecState == SHOOTING_MID){
-      analogWrite(PWM_SPEED,abs(180));
-      while (DCencoderPos < 4650){
+      analogWrite(PWM_SPEED,abs(135));
+      while (DCencoderPos < 4380 ){
       }
     }
     else {
-      analogWrite(PWM_SPEED,abs(220));
-      while (DCencoderPos < 4650){
+      analogWrite(PWM_SPEED,abs(175));
+      while (DCencoderPos < 4380){
       }
     }
     digitalWrite(PWM_IN, LOW);
@@ -729,7 +743,6 @@ void shooting() {
     leftEncTurn = getEncoderLeftCnt();
     rightEncTurn = getEncoderRightCnt();
     shotDone = true;
-    DCencoderPos = 0;
   }
 }
 
@@ -747,20 +760,20 @@ void startup() {
     scanning = true;
   }
   else if (minDistVal == 10000) {
-    for (int i = 0; i < 144; i = i+1) {
+    for (int i = 0; i < 152; i = i+1) {
       if (distArray[i] < minDistVal) {
         minDistVal = distArray[i];
         minDistIdx = i;
       }
     }
     if (intersection_counter == 0) {
-      int leftIdx = minDistIdx + 36;
-      if (leftIdx > 144) {
+      int leftIdx = minDistIdx + 38;
+      if (leftIdx > 152) {
         leftIdx = leftIdx - 144;
       }
-      int rightIdx = minDistIdx - 36;
+      int rightIdx = minDistIdx - 38;
       if (rightIdx < 0) {
-        rightIdx = rightIdx + 144;
+        rightIdx = rightIdx + 152;
       }
       if (distArray[leftIdx] < distArray[rightIdx]) {
         centerIdx = rightIdx;
@@ -786,7 +799,7 @@ void faceCenter() {
   getMotorSpeed(normalEncSpeed, normalEncSpeed);
   uint32_t leftEncVal = getEncoderLeftCnt();
   uint32_t rightEncVal = getEncoderRightCnt();
-  if (centerIdx < 72) {
+  if (centerIdx < 76) {
     if ((leftEncVal - leftEncTurn) < (centerIdx*5)) {
       enableMotor(LEFT_MOTOR);
       setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
@@ -808,7 +821,7 @@ void faceCenter() {
     }
   }
   else {
-    if ((leftEncVal - leftEncTurn) < (720-(centerIdx*5))) {
+    if ((leftEncVal - leftEncTurn) < (760-(centerIdx*5))) {
       Serial.println("Turning");
       enableMotor(LEFT_MOTOR);
       setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
@@ -817,7 +830,7 @@ void faceCenter() {
     else {
       disableMotor(LEFT_MOTOR);
     }
-    if ((rightEncVal - rightEncTurn) < (720-centerIdx*5)) {
+    if ((rightEncVal - rightEncTurn) < (760-centerIdx*5)) {
       enableMotor(RIGHT_MOTOR);
       setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
       setMotorSpeed(RIGHT_MOTOR, rightSpeed);
@@ -825,7 +838,7 @@ void faceCenter() {
     else {
       disableMotor(RIGHT_MOTOR);
     }
-    if (((rightEncVal - rightEncTurn) > (720-centerIdx*5)) && ((leftEncVal - leftEncTurn) > (720-centerIdx*5))) {
+    if (((rightEncVal - rightEncTurn) > (760-centerIdx*5)) && ((leftEncVal - leftEncTurn) > (760-centerIdx*5))) {
       turnCenter = false;
 //      if (intersection_counter == 3) {
 //        currDecState = DETECTING;
@@ -838,7 +851,7 @@ void initialMap() {
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
   uint32_t leftEncVal = getEncoderLeftCnt();
   uint32_t rightEncVal = getEncoderRightCnt();
-  if ((leftEncVal - leftEncTurn) < 720) {
+  if ((leftEncVal - leftEncTurn) < 760) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
@@ -849,14 +862,14 @@ void initialMap() {
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((rightEncVal - rightEncTurn) < 720) {
+  if ((rightEncVal - rightEncTurn) < 760) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((rightEncVal - rightEncTurn) > 720) && ((leftEncVal - leftEncTurn) > 720)) {
+  if (((rightEncVal - rightEncTurn) > 760) && ((leftEncVal - leftEncTurn) > 760)) {
     scanning = false;
   }
 }
