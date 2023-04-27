@@ -435,7 +435,7 @@ void followLine() {
     Serial.println("Deciding Intersection");
     Serial.println(intersection_counter);
     leavingInt = false;
-    startT = millis();
+    startT = millis(); 
   }
   
   else if (CheckIntersection() && !leavingInt) {
