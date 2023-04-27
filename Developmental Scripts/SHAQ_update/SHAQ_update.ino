@@ -1094,12 +1094,6 @@ void loop() {
     calibrated = true;
   }
 
-  if (shots > 2) {
-    currDecState = REALIGN;
-    shots = 0;
-    reversing = true;
-  }
-
   switch (currDecState) {
     case STARTUP:
       startup();
@@ -1120,6 +1114,13 @@ void loop() {
       shooting();
       break;
   }
-    prevDecState = prevDecState1;
-    prevDecState1 = currDecState;
+
+  if (shots > 2) {
+    currDecState = REALIGN;
+    shots = 0;
+    reversing = true;
+  }
+  
+  prevDecState = prevDecState1;
+  prevDecState1 = currDecState;
 }
