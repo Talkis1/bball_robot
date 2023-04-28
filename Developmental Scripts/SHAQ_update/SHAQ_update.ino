@@ -7,13 +7,13 @@
 #define red RED_LED
 
 hcrs04 mySensor(PINTRIG, PINECHO);
-float KpLine = 0.001;
+float KpLine = 0.005;
 float KiLine = 0.0;
-float KdLine = 0.1;
+float KdLine = 0.0;
 float LineError = 0.0;
 float lastError = 0.0;
-float normalSpeed = 20.0;
-float fastSpeed = 25.0;
+float normalSpeed = 25.0;
+float fastSpeed = 30.0;
 
 // variables that are responsible for High PWM to overcome static friction that is then lowered
 bool getMotorFirst = true;
@@ -473,11 +473,11 @@ void PIDLineFollow(){
   }
   int motorspeedRight = rightSpeed - motorspeed;
   int motorspeedLeft = leftSpeed + motorspeed;
-  if (motorspeedRight > 22){
-    motorspeedRight = 22;
+  if (motorspeedRight > normalSpeed+2){
+    motorspeedRight = normalSpeed+2;
   }
-  if (motorspeedLeft>22){
-    motorspeedLeft = 22;
+  if (motorspeedLeft>normalSpeed+2){
+    motorspeedLeft = normalSpeed+2;
   }
   enableMotor(BOTH_MOTORS);
   setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
