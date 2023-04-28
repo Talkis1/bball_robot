@@ -295,21 +295,21 @@ void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 
 
 void turnRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 90) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < 92) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 90) {
+  if ((getEncoderRightCnt() - rightEncTurn) < 92) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 90) && ((getEncoderLeftCnt() - leftEncTurn) > 90)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 92) && ((getEncoderLeftCnt() - leftEncTurn) > 92)) {
     right45 = false;
     stopper();
   }
@@ -340,21 +340,21 @@ void leaveLeftBasket(){ // copied the turn ninety left, will most likely turn 45
 
 void leaveRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 86) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < 89) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 86) {
+  if ((getEncoderRightCnt() - rightEncTurn) < 89) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 86) && ((getEncoderLeftCnt() - leftEncTurn) > 86)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > 89) && ((getEncoderLeftCnt() - leftEncTurn) > 89)) {
     correctRight = false;
     stopper();
   }
@@ -519,7 +519,7 @@ bool atInt = AtIntersection();
     currLineState = LEFT_OF_LINE;
     Serial.println("Left of Line");
   } 
-  else if (linePos >= 3100 && linePos <= 3400) {  // between 3000 and 3500 is considered centered
+  else if (linePos >= 3000 && linePos <= 3500) {  // between 3000 and 3500 is considered centered
     if (prevLineState == LEFT_OF_LINE) {
       leftCorrect = true;
       correctT = (millis() - startT) * 0.5;
