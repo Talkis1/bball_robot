@@ -7,13 +7,14 @@
 #define red RED_LED
 
 hcrs04 mySensor(PINTRIG, PINECHO);
-float KpLine = 0.005;
+float KpLine = 0.01;
 float KiLine = 0.0;
 float KdLine = 0.0;
 float LineError = 0.0;
 float lastError = 0.0;
 float normalSpeed = 25.0;
 float fastSpeed = 30.0;
+float setPointPID = 3000.0;
 
 // variables that are responsible for High PWM to overcome static friction that is then lowered
 bool getMotorFirst = true;
@@ -461,7 +462,7 @@ void PIDLineFollow(){
 
 
   uint32_t linePos = getLinePosition(sensorCalVal, lineColor);
-  LineError = linePos - 3250; //what is the current position?
+  LineError = linePos - setPointPID; //what is the current position?
   float P = LineError;
   float I = I + LineError;
   float D = LineError - lastError;
@@ -524,7 +525,7 @@ void followLine() {
     currLineState = SHOT_CENTERED;
     
   }
-  else if (linePos >= 1500 && linePos < 2750) {  // linePos spits out a weighted average of sensorVal where below 3000 is the sensors on the left seeing darker
+  else if (linePos >= 1500 && linePos < setPointPID-500) {  // linePos spits out a weighted average of sensorVal where below 3000 is the sensors on the left seeing darker
     if (prevLineState != RIGHT_OF_LINE) {
       startT = millis();
     }
@@ -532,14 +533,14 @@ void followLine() {
     Serial.println("Right of Line");
     
   } 
-  else if (linePos > 3750) {  // and the weighted value above 3500 are the sensors on the left seeing darker
+  else if (linePos > setPointPID+500) {  // and the weighted value above 3500 are the sensors on the left seeing darker
     if (prevLineState != LEFT_OF_LINE) {
       startT = millis();
     }
     currLineState = LEFT_OF_LINE;
     Serial.println("Left of Line");
   } 
-  else if (linePos >= 2750 && linePos <= 3750) {  // between 3000 and 3500 is considered centered
+  else if (linePos >= setPointPID-500 && linePos <= setPointPID+500) {  // between 3000 and 3500 is considered centered
     if (prevLineState == LEFT_OF_LINE) {
       leftCorrect = true;
       correctT = (millis() - startT) * 0.5;
