@@ -654,9 +654,23 @@ void driving() {
 void shooting() {
   // turn on motor
   digitalWrite(PWM_OUT, LOW);
-  analogWrite(PWM_SPEED,abs(180));
+  analogWrite(PWM_SPEED,abs(100));
   digitalWrite(PWM_IN, HIGH);
-  while (DCencoderPos < 4670){
+  while (DCencoderPos < 4750){
+    Serial.print("DC Encoder");
+    Serial.println(DCencoderPos);
+  }
+  digitalWrite(PWM_IN, LOW);
+  DCencoderPos = 0;
+  delay(1000);
+}
+
+void shootingSide() {
+  // turn on motor
+  digitalWrite(PWM_OUT, LOW);
+  analogWrite(PWM_SPEED,abs(140));
+  digitalWrite(PWM_IN, HIGH);
+  while (DCencoderPos < 4850){
     Serial.print("DC Encoder");
     Serial.println(DCencoderPos);
   }
@@ -905,5 +919,5 @@ void loop() {
 //      break;
 //  }
 //  prevDecState = currDecState;
-  shooting();
+  shootingSide();
 }
