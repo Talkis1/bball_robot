@@ -7,19 +7,31 @@
 #define red RED_LED
 
 hcrs04 mySensor(PINTRIG, PINECHO);
-float KpLine = 0.01;
+float KpLine = 0.1;
 float KiLine = 0.0;
 float KdLine = 0.0;
 float LineError = 0.0;
 float lastError = 0.0;
 float normalSpeed = 25.0;
 float fastSpeed = 30.0;
-float setPointPID = 3000.0;
+float setPointPID = 3250.0;
+
 
 // variables that are responsible for High PWM to overcome static friction that is then lowered
 bool getMotorFirst = true;
 uint16_t FrictionOvercomeSpeed = 30;
 
+// variables for tuning shooting
+double shootingEncOneRev = 4650;
+double shootingTurnLeft = 96;
+double shootingTurnRight = 91;
+double shootingReturnRight = 88; // returning to pointing straight from the right basket
+double shootingReturnLeft = 98; //returning to pointing straight from the left basket
+double PWMShotMid = 100.0;
+double PWMShotSide = 165.0; 
+
+
+//
 
 uint16_t rightSpeed = 5;
 uint16_t leftSpeed = 5;
@@ -270,21 +282,21 @@ void ninety_left() {  // needs to be tuned for a 90 degree turn through either t
 
 void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 95) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < shootingTurnLeft) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 95) {
+  if ((getEncoderRightCnt() - rightEncTurn) < shootingTurnLeft) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 95) && ((getEncoderLeftCnt() - leftEncTurn) > 95)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > shootingTurnLeft) && ((getEncoderLeftCnt() - leftEncTurn) > shootingTurnLeft)) {
     left45 = false;
     stopper();
     Serial.println("STOP TURN");
@@ -293,21 +305,21 @@ void turnLeftBasket(){ // copied the turn ninety left, will most likely turn 45 
 
 void turnRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 92) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < shootingTurnRight) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 92) {
+  if ((getEncoderRightCnt() - rightEncTurn) < shootingTurnRight) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 92) && ((getEncoderLeftCnt() - leftEncTurn) > 92)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > shootingTurnRight) && ((getEncoderLeftCnt() - leftEncTurn) > shootingTurnRight)) {
     right45 = false;
     stopper();
   }
@@ -315,21 +327,21 @@ void turnRightBasket(){ // copied the turn ninety right, will most likely turn 4
 
 void leaveLeftBasket(){ // copied the turn ninety left, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 97) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < shootingReturnLeft) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 97) {
+  if ((getEncoderRightCnt() - rightEncTurn) < shootingReturnLeft) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 97) && ((getEncoderLeftCnt() - leftEncTurn) > 97)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > shootingReturnLeft) && ((getEncoderLeftCnt() - leftEncTurn) > shootingReturnLeft)) {
     correctLeft = false;
     stopper();
     Serial.println("STOP TURN");
@@ -338,21 +350,21 @@ void leaveLeftBasket(){ // copied the turn ninety left, will most likely turn 45
 
 void leaveRightBasket(){ // copied the turn ninety right, will most likely turn 45 left but will maybe need to tune
   getMotorSpeed(slowEncSpeed, slowEncSpeed);
-  if ((getEncoderLeftCnt() - leftEncTurn) < 89) {
+  if ((getEncoderLeftCnt() - leftEncTurn) < shootingReturnRight) {
     enableMotor(LEFT_MOTOR);
     setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);
   } else {
     disableMotor(LEFT_MOTOR);
   }
-  if ((getEncoderRightCnt() - rightEncTurn) < 89) {
+  if ((getEncoderRightCnt() - rightEncTurn) < shootingReturnRight) {
     enableMotor(RIGHT_MOTOR);
     setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   } else {
     disableMotor(RIGHT_MOTOR);
   }
-  if (((getEncoderRightCnt() - rightEncTurn) > 89) && ((getEncoderLeftCnt() - leftEncTurn) > 89)) {
+  if (((getEncoderRightCnt() - rightEncTurn) > shootingReturnRight) && ((getEncoderLeftCnt() - leftEncTurn) > shootingReturnRight)) {
     correctRight = false;
     stopper();
   }
@@ -472,8 +484,8 @@ void PIDLineFollow(){
 
 
   }
-  int motorspeedRight = rightSpeed - motorspeed;
-  int motorspeedLeft = leftSpeed + motorspeed;
+  float motorspeedRight = normalSpeed - motorspeed;
+  float motorspeedLeft = normalSpeed + motorspeed;
   if (motorspeedRight > normalSpeed+2){
     motorspeedRight = normalSpeed+2;
   }
@@ -775,13 +787,13 @@ void shooting() {
     Serial.println("SHOOTING");
     
     if (currDecState == SHOOTING_MID){
-      analogWrite(PWM_SPEED,abs(100));
-      while (DCencoderPos < 4750 ){
+      analogWrite(PWM_SPEED,PWMShotMid);
+      while (DCencoderPos < shootingEncOneRev ){
       }
     }
     else {
-      analogWrite(PWM_SPEED,abs(160));
-      while (DCencoderPos < 4750){
+      analogWrite(PWM_SPEED,PWMShotSide);
+      while (DCencoderPos < shootingEncOneRev){
       }
     }
     digitalWrite(PWM_IN, LOW);
