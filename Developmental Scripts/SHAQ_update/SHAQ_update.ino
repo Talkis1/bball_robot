@@ -640,7 +640,8 @@ void floorCalibration() {
   btnMsg = "Push left button on Launchpad to begin line following.\n";
   btnMsg += "Make sure the robot is on the line.\n";
   /* Wait until button is pressed to start robot */
-  waitBtnPressed(LP_LEFT_BTN, btnMsg, RED_LED);
+
+  // waitBtnPressed(LP_LEFT_BTN, btnMsg, RED_LED); //commented out to allow for only 1 button press
   delay(1000);
 
   leftEncTurn = getEncoderLeftCnt();
