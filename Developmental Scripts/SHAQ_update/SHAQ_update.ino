@@ -7,9 +7,18 @@
 #define red RED_LED
 
 hcrs04 mySensor(PINTRIG, PINECHO);
+float KpLine = 0.001;
+float KiLine = 0.0;
+float KdLine = 0.1;
+float LineError = 0.0;
+float lastError = 0.0;
+float normalSpeed = 20.0;
+float fastSpeed = 25.0;
+
 // variables that are responsible for High PWM to overcome static friction that is then lowered
 bool getMotorFirst = true;
 uint16_t FrictionOvercomeSpeed = 30;
+
 
 uint16_t rightSpeed = 5;
 uint16_t leftSpeed = 5;
@@ -84,6 +93,7 @@ int intersection_counter = 0;
 uint8_t lineColor = DARK_LINE;
 
 enum lineStates {
+  SHOT_CENTERED,
   CENTERED,
   LEFT_OF_LINE,
   RIGHT_OF_LINE,
@@ -179,6 +189,11 @@ void keep_driving() {
   setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   setMotorSpeed(LEFT_MOTOR, leftSpeed);
 }
+void keep_driving1() {
+  enableMotor(BOTH_MOTORS);
+  setMotorDirection(BOTH_MOTORS, MOTOR_DIR_FORWARD);
+  setMotorSpeed(BOTH_MOTORS, normalSpeed);
+}
 
 void turn_right() {
   getMotorSpeed(fastEncSpeed, normalEncSpeed);
@@ -187,6 +202,12 @@ void turn_right() {
   setMotorSpeed(RIGHT_MOTOR, rightSpeed);
   setMotorSpeed(LEFT_MOTOR, leftSpeed);
 }
+void turn_right1() {
+  enableMotor(BOTH_MOTORS);
+  setMotorDirection(BOTH_MOTORS, MOTOR_DIR_FORWARD);
+  setMotorSpeed(RIGHT_MOTOR, fastSpeed);
+  setMotorSpeed(LEFT_MOTOR, normalSpeed);
+}
 
 void turn_left() {
   getMotorSpeed(normalEncSpeed, fastEncSpeed);
@@ -194,6 +215,12 @@ void turn_left() {
   setMotorDirection(BOTH_MOTORS, MOTOR_DIR_FORWARD);
   setMotorSpeed(LEFT_MOTOR, leftSpeed);
   setMotorSpeed(RIGHT_MOTOR, rightSpeed);
+}
+void turn_left1() {
+  enableMotor(BOTH_MOTORS);
+  setMotorDirection(BOTH_MOTORS, MOTOR_DIR_FORWARD);
+  setMotorSpeed(RIGHT_MOTOR, normalSpeed);
+  setMotorSpeed(LEFT_MOTOR, fastSpeed);
 }
 
 void ninety_right() {  // needs to be tuned for a 90 degree turn through either time or encoder
@@ -424,6 +451,40 @@ void getMotorSpeed(uint16_t leftEncSpeed, uint16_t rightEncSpeed) {
     }
   }
 }
+void PIDLineFollow(){
+  readLineSensor(sensorVal);
+  readCalLineSensor(sensorVal,
+                    sensorCalVal,
+                    sensorMinVal,
+                    sensorMaxVal,
+                    lineColor);
+
+
+  uint32_t linePos = getLinePosition(sensorCalVal, lineColor);
+  LineError = linePos - 3250; //what is the current position?
+  float P = LineError;
+  float I = I + LineError;
+  float D = LineError - lastError;
+  lastError = LineError;
+  float motorspeed = P*KpLine + I*KiLine + D*KdLine;
+  if (motorspeed>5){
+
+
+  }
+  int motorspeedRight = rightSpeed - motorspeed;
+  int motorspeedLeft = leftSpeed + motorspeed;
+  if (motorspeedRight > 22){
+    motorspeedRight = 22;
+  }
+  if (motorspeedLeft>22){
+    motorspeedLeft = 22;
+  }
+  enableMotor(BOTH_MOTORS);
+  setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
+  setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
+  setMotorSpeed(RIGHT_MOTOR, motorspeedRight);
+  setMotorSpeed(LEFT_MOTOR, motorspeedLeft);
+}
 
 void followLine() {
   readLineSensor(sensorVal);
@@ -460,10 +521,10 @@ void followLine() {
     
   }
   else if (currDecState == SHOOTING_MID) {
-    currLineState = CENTERED;
+    currLineState = SHOT_CENTERED;
     
   }
-  else if (linePos >= 1500 && linePos < 3000) {  // linePos spits out a weighted average of sensorVal where below 3000 is the sensors on the left seeing darker
+  else if (linePos >= 1500 && linePos < 2750) {  // linePos spits out a weighted average of sensorVal where below 3000 is the sensors on the left seeing darker
     if (prevLineState != RIGHT_OF_LINE) {
       startT = millis();
     }
@@ -471,14 +532,14 @@ void followLine() {
     Serial.println("Right of Line");
     
   } 
-  else if (linePos > 3400) {  // and the weighted value above 3500 are the sensors on the left seeing darker
+  else if (linePos > 3750) {  // and the weighted value above 3500 are the sensors on the left seeing darker
     if (prevLineState != LEFT_OF_LINE) {
       startT = millis();
     }
     currLineState = LEFT_OF_LINE;
     Serial.println("Left of Line");
   } 
-  else if (linePos >= 3000 && linePos <= 3500) {  // between 3000 and 3500 is considered centered
+  else if (linePos >= 2750 && linePos <= 3750) {  // between 3000 and 3500 is considered centered
     if (prevLineState == LEFT_OF_LINE) {
       leftCorrect = true;
       correctT = (millis() - startT) * 0.5;
@@ -500,20 +561,23 @@ void followLine() {
     }
   }
   switch (currLineState) {
-    case CENTERED:
+    case SHOT_CENTERED:
       keep_driving();
       break;
+    case CENTERED:
+      PIDLineFollow();
+      break;
     case LEFT_OF_LINE:
-      turn_right();
+      turn_right1();
       break;
     case RIGHT_OF_LINE:
-      turn_left();
+      turn_left1();
       break;
     case CORRECT_LEFT:
-      turn_left();
+      turn_left1();
       break;
     case CORRECT_RIGHT:
-      turn_right();
+      turn_right1();
       break;
     case AT_INTERSECTION:
       keep_driving();
