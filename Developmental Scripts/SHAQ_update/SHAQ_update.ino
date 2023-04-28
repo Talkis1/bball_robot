@@ -634,28 +634,18 @@ bool AtIntersection() {
 // This function ensures that the robots line sensors are aligned in parrellel with the intersection
 void AlignAtIntersection() {  // indicates the left edge of robot hit the intersection first
   stopper();
-  getMotorSpeed(normalEncSpeed, normalEncSpeed);
+  getMotorSpeed(slowEncSpeed, slowEncSpeed);
   if (sensorVal[0] > 2000) {
     if (sensorVal[7] > 2000) {
       keep_driving();
     } else {
       enableMotor(RIGHT_MOTOR);  // turns on right motor to bring the right side of the robot even with the left side
-      if (backwards) {
-        setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_BACKWARD);
-      }
-      else {
-        setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
-      }
+      setMotorDirection(RIGHT_MOTOR, MOTOR_DIR_FORWARD);
       setMotorSpeed(RIGHT_MOTOR, rightSpeed);  // update speed in future to be non hardcoded
     }
   } else if (sensorVal[7] > 2000) {
     enableMotor(LEFT_MOTOR);  // turns on right motor to bring the right side of the robot even with the left side
-    if (backwards) {
-      setMotorDirection(LEFT_MOTOR, MOTOR_DIR_BACKWARD);
-    }
-    else {
-      setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
-    }
+    setMotorDirection(LEFT_MOTOR, MOTOR_DIR_FORWARD);
     setMotorSpeed(LEFT_MOTOR, leftSpeed);  // update speed in future to be non hardcoded
   }
 }
