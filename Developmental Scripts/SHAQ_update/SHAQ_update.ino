@@ -22,13 +22,14 @@ bool getMotorFirst = true;
 uint16_t FrictionOvercomeSpeed = 30;
 
 // variables for tuning shooting
-double shootingEncOneRev = 4650;
-double shootingTurnLeft = 96;
-double shootingTurnRight = 91;
-double shootingReturnRight = 88; // returning to pointing straight from the right basket
-double shootingReturnLeft = 98; //returning to pointing straight from the left basket
+double shootingEncLeftRight = 4200;
+double shootingEncMid = 4200;
+double shootingTurnLeft = 93;
+double shootingTurnRight = 90;
+double shootingReturnRight = 91; // returning to pointing straight from the right basket
+double shootingReturnLeft = 99; //returning to pointing straight from the left basket
 double PWMShotMid = 100.0;
-double PWMShotSide = 165.0; 
+double PWMShotSide = 150.0; 
 
 
 //
@@ -410,7 +411,7 @@ void nudgeForward() {
   }
   if (((getEncoderRightCnt() - rightEncTurn) > 350) && ((getEncoderLeftCnt() - leftEncTurn) > 350)) {
     nudge = false;
-    currDecState = DETECTING;
+    currDecState = SHOOTING_MID;
     stopper();
   }
 }
@@ -779,6 +780,7 @@ void shooting() {
     currDecState = DETECTING;
     shotDone = false;
     shots = shots + 1;
+    delay(1000);
   }
   else {
     DCencoderPos = 0;
@@ -789,12 +791,12 @@ void shooting() {
     
     if (currDecState == SHOOTING_MID){
       analogWrite(PWM_SPEED,PWMShotMid);
-      while (DCencoderPos < shootingEncOneRev ){
+      while (DCencoderPos < shootingEncMid ){
       }
     }
     else {
       analogWrite(PWM_SPEED,PWMShotSide);
-      while (DCencoderPos < shootingEncOneRev){
+      while (DCencoderPos < shootingEncLeftRight){
       }
     }
     digitalWrite(PWM_IN, LOW);
